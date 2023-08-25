@@ -1,6 +1,6 @@
 import Foundation
 
-struct Position : Comparable {
+struct Position: Comparable {
     var x: Int
     var y: Int
 
@@ -24,6 +24,24 @@ enum Orientation: Character {
     case south = "S"
     case east  = "E"
     case west  = "W"
+
+    var left: Orientation {
+        switch self {
+        case .north: return .west
+        case .east:  return .north
+        case .south: return .east
+        case .west:  return .south
+        }
+    }
+
+    var right: Orientation {
+        switch self {
+        case .north: return .east
+        case .east:  return .south
+        case .south: return .west
+        case .west:  return .north
+        }
+    }
 }
 
 class Robot {
@@ -44,30 +62,12 @@ class Robot {
         }
     }
 
-    func right() {
-        switch (orientation) {
-        case .north:
-            orientation = .east
-        case .south:
-            orientation = .west
-        case .west:
-            orientation = .north
-        case .east:
-            orientation = .south
-        }
+    func left() {
+        orientation = orientation.left
     }
 
-    func left() {
-        switch (orientation) {
-        case .north:
-            orientation = .west
-        case .south:
-            orientation = .east
-        case .west:
-            orientation = .south
-        case .east:
-            orientation = .north
-        }
+    func right() {
+        orientation = orientation.right
     }
 
     func forward() {
@@ -84,6 +84,72 @@ class Robot {
     }
 }
 
+func parsePose(from string: String) -> (Position, Orientation)? {
+    let poseInput = Array(string)
+    guard let initX = poseInput[0].wholeNumberValue, let initY = poseInput[1].wholeNumberValue else { return nil }
+    let initPosition = Position(x: initX, y: initY)
+
+    let initOrientation: Orientation
+    switch (poseInput[2]) {
+    case "N":
+        initOrientation = .north
+    case "S":
+        initOrientation = .south
+    case "E":
+        initOrientation = .east
+    case "W":
+        initOrientation = .west
+    default:
+        return nil
+    }
+
+    return (initPosition, initOrientation)
+}
+
+func executeInstructions(_ instructions: [Character], for robot: Robot, bounds: Position, lostPositions: inout [Position]) {
+    for instruction in instructions {
+        let backupPosition = robot.position
+        switch(instruction) {
+        case "R":
+            robot.right()
+        case "L":
+            robot.left()
+        case "F":
+            robot.forward()
+        default:
+            break
+        }
+        if robot.position > bounds {
+            robot.position = backupPosition
+            if !lostPositions.contains(backupPosition) {
+                lostPositions.append(backupPosition)
+                robot.isLost = true
+                break
+            }
+        }
+    }
+}
+
+func process(input: String) {
+    let lines = input.components(separatedBy: "\n")
+    let boundsInput = Array(lines[0])
+    let robotsInput = lines.dropFirst()
+
+    guard let boundX = boundsInput[0].wholeNumberValue, let boundY = boundsInput[1].wholeNumberValue else { return }
+    let bounds = Position(x: boundX, y: boundY)
+    var lostPositions:[Position] = []
+
+    for robotInput in robotsInput {
+        let components = robotInput.components(separatedBy: " ")
+        guard let (initialPosition, initialOrientation) = parsePose(from: components[0]) else { return }
+        let instructions = Array(components[1])
+
+        let robot = Robot(position: initialPosition, orientation: initialOrientation)
+        executeInstructions(instructions, for: robot, bounds: bounds, lostPositions: &lostPositions)
+        robot.printPose()
+    }
+}
+
 let input = """
 53
 11E RFRFRFRF
@@ -91,61 +157,4 @@ let input = """
 03W LLFFFLFLFL
 """
 
-func traverse(input: String) {
-    let lines = input.components(separatedBy: "\n")
-    let boundsInput = Array(lines[0])
-    let robotsInput = lines.dropFirst()
-    guard let boundX = boundsInput[0].wholeNumberValue, let boundY = boundsInput[1].wholeNumberValue else { return }
-    let bounds = Position(x: boundX, y: boundY)
-    var lostPositions:[Position] = []
-
-    for robotInput in robotsInput {
-        let components = robotInput.components(separatedBy: " ")
-        let poseInput = Array(components[0])
-        let instructionInput = components[1]
-        guard let initX = poseInput[0].wholeNumberValue, let initY = poseInput[1].wholeNumberValue else { return }
-        let initPosition = Position(x: initX, y: initY)
-        let initOrientation: Orientation?
-        switch (poseInput[2]) {
-        case "N":
-            initOrientation = .north
-        case "S":
-            initOrientation = .south
-        case "E":
-            initOrientation = .east
-        case "W":
-            initOrientation = .west
-        default:
-            initOrientation = nil
-        }
-        guard let initOrientation else { return }
-
-        var robot = Robot(position: initPosition, orientation: initOrientation)
-
-        for instruction in instructionInput {
-            let backupPosition = robot.position
-            switch(instruction) {
-            case "R":
-                robot.right()
-            case "L":
-                robot.left()
-            case "F":
-                robot.forward()
-            default:
-                break
-            }
-            if robot.position > bounds {
-                robot.position = backupPosition
-                if !lostPositions.contains(backupPosition) {
-                    lostPositions.append(backupPosition)
-                    robot.isLost = true
-                    break
-                }
-            }
-        }
-
-        robot.printPose()
-    }
-}
-
-traverse(input: input)
+process(input: input)
