@@ -84,6 +84,7 @@ class Robot {
     }
 }
 
+// This function parses a pose from a string and returns a tuple of Position and Orientation(optional)
 func parsePose(from string: String) -> (Position, Orientation)? {
     let poseInput = Array(string)
     guard let initX = poseInput[0].wholeNumberValue, let initY = poseInput[1].wholeNumberValue else { return nil }
@@ -106,6 +107,8 @@ func parsePose(from string: String) -> (Position, Orientation)? {
     return (initPosition, initOrientation)
 }
 
+/* This function executes instructions for a robot. For each instruction, the new position is checked against the bounds. If the position exceeds the bounds and has not been marked by a lost robot before, the robot is now lost aborting execution. The robot's position is rolled back and it's location marked for future robots. If the position exceeds the bounds and has been marked before, the robot's position rolled back and execution continues.
+*/
 func executeInstructions(_ instructions: [Character], for robot: Robot, bounds: Position, lostPositions: inout [Position]) {
     for instruction in instructions {
         let backupPosition = robot.position
@@ -117,7 +120,7 @@ func executeInstructions(_ instructions: [Character], for robot: Robot, bounds: 
         case "F":
             robot.forward()
         default:
-            break
+            continue
         }
         if robot.position > bounds {
             robot.position = backupPosition
@@ -130,6 +133,8 @@ func executeInstructions(_ instructions: [Character], for robot: Robot, bounds: 
     }
 }
 
+/* This function accepts an input string, parses it, and sequentially executes instructions for each robot. After executing the instructions for a robot, it's final pose is printed. The string has information for the upper right coordinates of the rectangular world the robot is in and sets of initial poses for different robots and their movement instructions.
+*/
 func process(input: String) {
     let lines = input.components(separatedBy: "\n")
     let boundsInput = Array(lines[0])
@@ -150,6 +155,7 @@ func process(input: String) {
     }
 }
 
+// Sample input
 let input = """
 53
 11E RFRFRFRF
